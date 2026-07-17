@@ -36,3 +36,6 @@ Open the project and run it locally.
 
 Ali Asghar Zakeri
 Frontend Developer
+
+username : admin 
+password : 1234
