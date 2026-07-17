@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 — Page Not Found</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0A0F1C;
+            --bg-secondary: #0D1224;
+            --electric-blue: #3B82F6;
+            --cyan-glow: #06B6D4;
+            --text-primary: rgba(255, 255, 255, 0.9);
+            --text-secondary: rgba(255, 255, 255, 0.45);
+            --text-tertiary: rgba(255, 255, 255, 0.25);
+            --border-glow: rgba(59, 130, 246, 0.15);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #bgCanvas {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        .grid-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            background-image:
+                linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
+            background-size: 80px 80px;
+            mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, black 20%, transparent 70%);
+            -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, black 20%, transparent 70%);
+        }
+
+        .scan-line {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent 0%, var(--cyan-glow) 30%, var(--electric-blue) 50%, var(--cyan-glow) 70%, transparent 100%);
+            opacity: 0.12;
+            z-index: 2;
+            animation: scanMove 8s ease-in-out infinite;
+        }
+
+        @keyframes scanMove {
+            0%, 100% { top: -2px; }
+            50% { top: 100%; }
+        }
+
+        .vignette {
+            position: fixed;
+            inset: 0;
+            z-index: 2;
+            background: radial-gradient(ellipse 70% 60% at 50% 50%, transparent 30%, var(--bg-primary) 100%);
+            pointer-events: none;
+        }
+
+        .content {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            max-width: 640px;
+            padding: 2rem;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 100px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 400;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--cyan-glow);
+            background: rgba(59, 130, 246, 0.05);
+            margin-bottom: 40px;
+            backdrop-filter: blur(8px);
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--cyan-glow);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; box-shadow: 0 0 4px var(--cyan-glow); }
+            50% { opacity: 0.4; box-shadow: 0 0 8px var(--cyan-glow); }
+        }
+
+        .error-number {
+            position: relative;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: clamp(100px, 18vw, 200px);
+            font-weight: 300;
+            letter-spacing: -0.04em;
+            line-height: 1;
+            color: transparent;
+            margin-bottom: 8px;
+            -webkit-text-stroke: 1px rgba(59, 130, 246, 0.2);
+        }
+
+        .error-number::before {
+            content: '404';
+            position: absolute;
+            inset: 0;
+            color: transparent;
+            -webkit-text-stroke: 1px rgba(6, 182, 212, 0.08);
+            filter: blur(20px);
+        }
+
+        .error-number-fill {
+            position: absolute;
+            inset: 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: clamp(100px, 18vw, 200px);
+            font-weight: 300;
+            letter-spacing: -0.04em;
+            line-height: 1;
+            color: rgba(255, 255, 255, 0.04);
+            -webkit-text-stroke: 0;
+            pointer-events: none;
+        }
+
+        .error-glow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 100px;
+            background: radial-gradient(ellipse, rgba(59, 130, 246, 0.08) 0%, transparent 70%);
+            filter: blur(30px);
+            pointer-events: none;
+            animation: glowPulse 4s ease-in-out infinite;
+        }
+
+        @keyframes glowPulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .light-line {
+            width: 120px;
+            height: 1px;
+            margin: 24px auto 32px;
+            background: linear-gradient(90deg, transparent, var(--electric-blue), var(--cyan-glow), var(--electric-blue), transparent);
+            opacity: 0.4;
+            position: relative;
+        }
+
+        .light-line::after {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: 0;
+            width: 40px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--cyan-glow), transparent);
+            filter: blur(2px);
+            animation: lineSlide 3s ease-in-out infinite;
+        }
+
+        @keyframes lineSlide {
+            0% { left: -40px; }
+            100% { left: calc(100% + 40px); }
+        }
+
+        .error-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            color: var(--text-primary);
+            margin-bottom: 14px;
+        }
+
+        .error-desc {
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
+            font-weight: 300;
+            line-height: 1.9;
+            color: var(--text-secondary);
+            max-width: 400px;
+            margin: 0 auto 40px;
+        }
+
+        .data-readout {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 48px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            color: var(--text-tertiary);
+        }
+
+        .data-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .data-value {
+            color: rgba(59, 130, 246, 0.5);
+            font-size: 11px;
+        }
+
+        /* ── Modern Gradient Button ── */
+        .btn-home {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 20px 56px;
+            background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
+            border: none;
+            border-radius: 14px;
+            color: #FFFFFF;
+            font-family: 'Outfit', sans-serif;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            cursor: pointer;
+            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-home::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, #60A5FA 0%, #22D3EE 100%);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .btn-home::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .btn-home span,
+        .btn-home svg {
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-home:hover {
+            transform: translateY(-3px);
+            box-shadow:
+                0 0 40px rgba(59, 130, 246, 0.3),
+                0 0 80px rgba(6, 182, 212, 0.15),
+                0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-home:hover::before {
+            opacity: 1;
+        }
+
+        .btn-home:hover::after {
+            left: 120%;
+        }
+
+        .btn-home:active {
+            transform: translateY(-1px);
+            box-shadow:
+                0 0 20px rgba(59, 130, 246, 0.2),
+                0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-home svg {
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .btn-home:hover svg {
+            transform: translateX(-4px);
+        }
+
+        .coordinates {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            color: var(--text-tertiary);
+            display: flex;
+            gap: 24px;
+        }
+
+        .coord-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .coord-label {
+            color: rgba(59, 130, 246, 0.3);
+        }
+
+        .corner-mark {
+            position: fixed;
+            width: 24px;
+            height: 24px;
+            z-index: 10;
+            opacity: 0.15;
+        }
+
+        .corner-mark.tl { top: 24px; left: 24px; border-top: 1px solid var(--electric-blue); border-left: 1px solid var(--electric-blue); }
+        .corner-mark.tr { top: 24px; right: 24px; border-top: 1px solid var(--electric-blue); border-right: 1px solid var(--electric-blue); }
+        .corner-mark.bl { bottom: 24px; left: 24px; border-bottom: 1px solid var(--electric-blue); border-left: 1px solid var(--electric-blue); }
+        .corner-mark.br { bottom: 24px; right: 24px; border-bottom: 1px solid var(--electric-blue); border-right: 1px solid var(--electric-blue); }
+
+        .side-line {
+            position: fixed;
+            z-index: 5;
+            width: 1px;
+            background: linear-gradient(to bottom, transparent, rgba(59, 130, 246, 0.1), transparent);
+        }
+
+        .side-line.left { left: 60px; top: 0; bottom: 0; }
+        .side-line.right { right: 60px; top: 0; bottom: 0; }
+
+        .side-line::after {
+            content: '';
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            border-radius: 50%;
+            background: var(--cyan-glow);
+            box-shadow: 0 0 6px var(--cyan-glow);
+            left: -1px;
+            animation: flowDown 6s linear infinite;
+        }
+
+        .side-line.right::after {
+            animation: flowUp 7s linear infinite;
+        }
+
+        @keyframes flowDown {
+            0% { top: -3px; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        @keyframes flowUp {
+            0% { top: 100%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: -3px; opacity: 0; }
+        }
+
+        .fade-in {
+            opacity: 0;
+            transform: translateY(16px);
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+
+        .fade-in:nth-child(1) { animation-delay: 0.1s; }
+        .fade-in:nth-child(2) { animation-delay: 0.25s; }
+        .fade-in:nth-child(3) { animation-delay: 0.35s; }
+        .fade-in:nth-child(4) { animation-delay: 0.45s; }
+        .fade-in:nth-child(5) { animation-delay: 0.55s; }
+        .fade-in:nth-child(6) { animation-delay: 0.7s; }
+
+        @keyframes fadeInUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 640px) {
+            .data-readout { gap: 20px; flex-wrap: wrap; }
+            .btn-home { width: 100%; max-width: 320px; padding: 18px 40px; font-size: 16px; }
+            .side-line { display: none; }
+            .coordinates { flex-direction: column; align-items: center; gap: 4px; }
+            .corner-mark { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="bgCanvas"></canvas>
+    <div class="grid-overlay"></div>
+    <div class="scan-line"></div>
+    <div class="vignette"></div>
+
+    <div class="side-line left"></div>
+    <div class="side-line right"></div>
+
+    <div class="corner-mark tl"></div>
+    <div class="corner-mark tr"></div>
+    <div class="corner-mark bl"></div>
+    <div class="corner-mark br"></div>
+
+    <main class="content">
+        <div class="fade-in">
+            <div class="status-badge">
+                <span class="status-dot"></span>
+                ERROR — ROUTE NOT RESOLVED
+            </div>
+        </div>
+
+        <div class="fade-in" style="position: relative;">
+            <div class="error-number" aria-hidden="true">404</div>
+            <div class="error-number-fill" aria-hidden="true">404</div>
+            <div class="error-glow"></div>
+        </div>
+
+        <div class="fade-in">
+            <div class="light-line"></div>
+        </div>
+
+        <div class="fade-in">
+            <h1 class="error-title">صفحه مورد نظر یافت نشد</h1>
+        </div>
+
+        <div class="fade-in">
+            <p class="error-desc">
+                مسیر درخواستی در سیستم شناسایی نشد. ممکن است این صفحه حذف شده، جابه‌جا شده یا هرگز وجود نداشته باشد.
+            </p>
+        </div>
+
+        <div class="fade-in">
+            <div class="data-readout">
+                <div class="data-item">
+                    <span class="data-value" id="errorCode">ERR_404</span>
+                    <span>STATUS</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-value" id="timestamp">--:--:--</span>
+                    <span>TIME</span>
+                </div>
+                <div class="data-item">
+                    <span class="data-value" id="pathDisplay">/undefined</span>
+                    <span>PATH</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="fade-in">
+            <a href="index.html" class="btn-home">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 12H5"/>
+                    <path d="M12 19l-7-7 7-7"/>
+                </svg>
+                <span>بازگشت به خانه</span>
+            </a>
+        </div>
+    </main>
+
+    <div class="coordinates">
+        <div class="coord-item">
+            <span class="coord-label">LAT</span>
+            <span id="mouseX">0000</span>
+        </div>
+        <div class="coord-item">
+            <span class="coord-label">LON</span>
+            <span id="mouseY">0000</span>
+        </div>
+        <div class="coord-item">
+            <span class="coord-label">SYS</span>
+            <span>ONLINE</span>
+        </div>
+    </div>
+
+    <script>
+        function updateClock() {
+            const now = new Date();
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const s = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('timestamp').textContent = `${h}:${m}:${s}`;
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        document.getElementById('pathDisplay').textContent = window.location.pathname || '/unknown';
+
+        document.addEventListener('mousemove', (e) => {
+            document.getElementById('mouseX').textContent = String(Math.round(e.clientX)).padStart(4, '0');
+            document.getElementById('mouseY').textContent = String(Math.round(e.clientY)).padStart(4, '0');
+        });
+
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+        let w, h;
+
+        function resize() { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; }
+        resize();
+        window.addEventListener('resize', resize);
+
+        class Particle {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = Math.random() * w; this.y = Math.random() * h;
+                this.size = Math.random() * 1.2 + 0.3;
+                this.speedX = (Math.random() - 0.5) * 0.3;
+                this.speedY = (Math.random() - 0.5) * 0.3;
+                this.opacity = Math.random() * 0.3 + 0.05;
+                this.isCyan = Math.random() > 0.6;
+            }
+            update() {
+                this.x += this.speedX; this.y += this.speedY;
+                if (this.x < -10 || this.x > w + 10 || this.y < -10 || this.y > h + 10) this.reset();
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.isCyan ? `rgba(6,182,212,${this.opacity})` : `rgba(59,130,246,${this.opacity})`;
+                ctx.fill();
+            }
+        }
+
+        const particles = [];
+        for (let i = 0; i < Math.min(80, Math.floor((w * h) / 15000)); i++) particles.push(new Particle());
+
+        function drawConnections() {
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x, dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 150) {
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.strokeStyle = `rgba(59,130,246,${(1 - dist / 150) * 0.06})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        class LightBeam {
+            constructor() { this.reset(); }
+            reset() {
+                this.y = Math.random() * h; this.speed = Math.random() * 0.4 + 0.1;
+                this.width = Math.random() * 200 + 100; this.opacity = 0;
+                this.maxOpacity = Math.random() * 0.025 + 0.005;
+                this.life = 0; this.maxLife = Math.random() * 400 + 200;
+                this.isCyan = Math.random() > 0.5;
+            }
+            update() {
+                this.y += this.speed; this.life++;
+                if (this.life < 60) this.opacity = (this.life / 60) * this.maxOpacity;
+                else if (this.life > this.maxLife - 60) this.opacity = ((this.maxLife - this.life) / 60) * this.maxOpacity;
+                if (this.life >= this.maxLife || this.y > h + 50) { this.reset(); this.y = -50; }
+            }
+            draw() {
+                const g = ctx.createLinearGradient(w / 2 - this.width / 2, 0, w / 2 + this.width / 2, 0);
+                const c = this.isCyan ? '6,182,212' : '59,130,246';
+                g.addColorStop(0, `rgba(${c},0)`);
+                g.addColorStop(0.5, `rgba(${c},${this.opacity})`);
+                g.addColorStop(1, `rgba(${c},0)`);
+                ctx.fillStyle = g;
+                ctx.fillRect(w / 2 - this.width / 2, this.y - 1, this.width, 2);
+            }
+        }
+
+        const beams = [];
+        for (let i = 0; i < 5; i++) { const b = new LightBeam(); b.life = Math.floor(Math.random() * b.maxLife); beams.push(b); }
+
+        class DataStreak {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = -200; this.y = Math.random() * h; this.speed = Math.random() * 2 + 1;
+                this.length = Math.random() * 150 + 50; this.opacity = Math.random() * 0.08 + 0.02;
+                this.isCyan = Math.random() > 0.6; this.active = false; this.timer = Math.random() * 600 + 200;
+            }
+            update() {
+                if (!this.active) { this.timer--; if (this.timer <= 0) this.active = true; return; }
+                this.x += this.speed; if (this.x > w + 200) this.reset();
+            }
+            draw() {
+                if (!this.active) return;
+                const g = ctx.createLinearGradient(this.x - this.length, 0, this.x, 0);
+                const c = this.isCyan ? '6,182,212' : '59,130,246';
+                g.addColorStop(0, `rgba(${c},0)`);
+                g.addColorStop(1, `rgba(${c},${this.opacity})`);
+                ctx.beginPath(); ctx.moveTo(this.x - this.length, this.y); ctx.lineTo(this.x, this.y);
+                ctx.strokeStyle = g; ctx.lineWidth = 0.5; ctx.stroke();
+            }
+        }
+
+        const streaks = [];
+        for (let i = 0; i < 8; i++) streaks.push(new DataStreak());
+
+        function drawCenterGlow() {
+            const g = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h) * 0.4);
+            g.addColorStop(0, 'rgba(59,130,246,0.03)');
+            g.addColorStop(0.5, 'rgba(6,182,212,0.01)');
+            g.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 0, w, h);
+        }
+
+        (function animate() {
+            ctx.clearRect(0, 0, w, h);
+            drawCenterGlow();
+            beams.forEach(b => { b.update(); b.draw(); });
+            streaks.forEach(s => { s.update(); s.draw(); });
+            particles.forEach(p => { p.update(); p.draw(); });
+            drawConnections();
+            requestAnimationFrame(animate);
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نبض آینده جنوب — تنظیمات</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+        :root{
+            --bg:#0B0F19;--bg-nav:rgba(8,12,22,0.85);--bg-input:rgba(15,23,42,0.6);
+            --blue:#3B82F6;--cyan:#06B6D4;--danger:#EF4444;
+            --t1:rgba(255,255,255,0.92);--t2:rgba(255,255,255,0.48);--t3:rgba(255,255,255,0.22);
+            --border:rgba(59,130,246,0.07);--border-hover:rgba(59,130,246,0.14);
+            --nav-w:248px;--top-h:56px;
+        }
+        body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--t1);min-height:100vh;overflow-x:hidden}
+        #bgCanvas{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+        .vignette{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 70% 60% at 50% 30%,transparent 10%,var(--bg) 100%)}
+
+        /* ── Top Bar ── */
+        .top-bar{
+            position:fixed;top:0;left:0;right:0;height:var(--top-h);z-index:100;
+            display:flex;align-items:center;justify-content:space-between;
+            padding:0 32px;
+            background:rgba(11,15,25,0.8);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+            border-bottom:1px solid var(--border);
+        }
+        .top-bar-right{display:flex;align-items:center;gap:12px}
+        .brand{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;letter-spacing:0.2em;color:var(--cyan);text-transform:uppercase}
+        .sep{color:var(--t3);font-size:16px}
+        .breadcrumb{font-size:14px;color:var(--t2);font-weight:400}
+        .top-bar-left{display:flex;align-items:center;gap:16px}
+        .top-avatar{width:32px;height:32px;border-radius:50%;background:rgba(59,130,246,0.12);border:1.5px solid rgba(59,130,246,0.2);display:flex;align-items:center;justify-content:center}
+        .top-avatar svg{width:16px;height:16px;opacity:0.4}
+
+        /* ── Main Layout ── */
+        .main-layout{
+            position:relative;z-index:1;
+            display:grid;grid-template-columns:var(--nav-w) 1fr;
+            margin-top:var(--top-h);min-height:calc(100vh - var(--top-h));
+        }
+
+        /* ── Side Nav ── */
+        .side-nav{
+            position:sticky;top:var(--top-h);height:calc(100vh - var(--top-h));
+            padding:24px 0;overflow-y:auto;
+            background:var(--bg-nav);
+            border-left:1px solid var(--border);
+            display:flex;flex-direction:column;
+            scrollbar-width:none;
+        }
+        .side-nav::-webkit-scrollbar{display:none}
+        .nav-group-label{padding:0 24px;margin-bottom:10px;font-size:10.5px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--t3)}
+        .nav-group{margin-bottom:24px}
+        .nav-item{
+            display:flex;align-items:center;gap:12px;
+            width:100%;padding:12px 24px;
+            background:transparent;border:none;
+            color:var(--t2);font-family:'Inter',sans-serif;font-size:14.5px;font-weight:400;
+            cursor:pointer;transition:all .25s ease;text-align:right;position:relative;
+        }
+        .nav-item svg{width:18px;height:18px;opacity:0.4;flex-shrink:0;transition:opacity .25s ease}
+        .nav-item:hover{color:var(--t1);background:rgba(59,130,246,0.04)}
+        .nav-item:hover svg{opacity:0.7}
+        .nav-item.active{color:var(--t1);background:rgba(59,130,246,0.07)}
+        .nav-item.active svg{opacity:1;color:var(--blue)}
+        .nav-item.active::before{
+            content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+            width:2.5px;height:24px;border-radius:0 3px 3px 0;
+            background:linear-gradient(to bottom,var(--blue),var(--cyan));
+            box-shadow:0 0 10px rgba(59,130,246,0.4);
+        }
+        .nav-ai-badge{
+            font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:500;
+            letter-spacing:0.08em;padding:2px 8px;border-radius:4px;
+            background:rgba(6,182,212,0.1);color:var(--cyan);
+            margin-right:auto;margin-left:0;
+        }
+        .nav-divider{height:1px;background:var(--border);margin:8px 24px}
+
+        /* ── Content Area ── */
+        .content-area{padding:48px 56px;max-width:860px;min-width:0}
+        .section{display:none;animation:secIn .35s ease-out}
+        .section.active{display:block}
+        @keyframes secIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+        .section-title{font-size:28px;font-weight:600;letter-spacing:-0.02em;margin-bottom:8px}
+        .section-subtitle{font-size:15px;font-weight:300;color:var(--t3);margin-bottom:28px}
+        .section-divider{height:1px;background:var(--border);margin:0 0 4px}
+
+        /* ── Setting Row ── */
+        .setting-row{
+            display:flex;align-items:center;justify-content:space-between;
+            padding:22px 0;border-bottom:1px solid var(--border);
+            transition:background .2s ease;
+        }
+        .setting-row:last-child{border-bottom:none}
+        .setting-row:hover{background:rgba(59,130,246,0.015);margin:0 -16px;padding:22px 16px;border-radius:8px}
+        .setting-label{flex:1;min-width:0;padding-left:32px}
+        .label-title{font-size:15px;font-weight:500;color:var(--t1)}
+        .label-desc{font-size:13px;font-weight:300;color:var(--t3);margin-top:4px}
+        .setting-control{flex-shrink:0;display:flex;align-items:center;gap:12px}
+
+        /* ── Sub-title inside section ── */
+        .sub-title{font-size:14px;font-weight:600;color:var(--t2);padding:28px 0 6px;letter-spacing:0.02em}
+
+        /* ── Inputs ── */
+        .s-input{
+            padding:11px 18px;width:340px;
+            background:var(--bg-input);border:1px solid var(--border);border-radius:8px;
+            color:var(--t1);font-family:'Inter',sans-serif;font-size:14px;font-weight:400;
+            outline:none;transition:all .25s ease;direction:rtl;
+        }
+        .s-input::placeholder{color:var(--t3)}
+        .s-input:focus{border-color:rgba(59,130,246,0.3);box-shadow:0 0 0 3px rgba(59,130,246,0.06)}
+        .s-input:read-only{opacity:0.5;cursor:default}
+
+        .s-select{
+            padding:11px 40px 11px 18px;width:340px;
+            background:var(--bg-input);border:1px solid var(--border);border-radius:8px;
+            color:var(--t1);font-family:'Inter',sans-serif;font-size:14px;font-weight:400;
+            outline:none;cursor:pointer;transition:all .25s ease;
+            appearance:none;
+            background-image:url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='rgba(255,255,255,0.25)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat:no-repeat;background-position:left 14px center;
+        }
+        .s-select:focus{border-color:rgba(59,130,246,0.3);box-shadow:0 0 0 3px rgba(59,130,246,0.06)}
+        .s-select option{background:#111827;color:var(--t1)}
+
+        /* ── Toggle ── */
+        .toggle{position:relative;width:48px;height:26px;flex-shrink:0;cursor:pointer}
+        .toggle input{display:none}
+        .toggle-track{position:absolute;inset:0;background:rgba(255,255,255,0.07);border-radius:13px;border:1px solid rgba(255,255,255,0.05);transition:all .3s ease}
+        .toggle-thumb{position:absolute;top:3px;right:3px;width:20px;height:20px;background:rgba(255,255,255,0.35);border-radius:50%;transition:all .3s cubic-bezier(.68,-.15,.27,1.15)}
+        .toggle input:checked~.toggle-track{background:rgba(59,130,246,0.2);border-color:rgba(59,130,246,0.25);box-shadow:0 0 14px rgba(59,130,246,0.12)}
+        .toggle input:checked~.toggle-thumb{right:25px;background:var(--blue);box-shadow:0 0 8px rgba(59,130,246,0.5)}
+
+        /* ── Buttons ── */
+        .btn{
+            display:inline-flex;align-items:center;justify-content:center;gap:8px;
+            padding:11px 26px;border:none;border-radius:8px;
+            font-family:'Inter',sans-serif;font-size:14px;font-weight:600;
+            cursor:pointer;transition:all .35s ease;position:relative;overflow:hidden;
+        }
+        .btn-primary{background:linear-gradient(135deg,var(--blue),var(--cyan));color:#fff}
+        .btn-primary::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,#60A5FA,#22D3EE);opacity:0;transition:opacity .35s ease}
+        .btn-primary span,.btn-primary svg{position:relative;z-index:1}
+        .btn-primary:hover{transform:translateY(-1px);box-shadow:0 0 24px rgba(59,130,246,0.2),0 4px 16px rgba(0,0,0,0.3)}
+        .btn-primary:hover::before{opacity:1}
+        .btn-danger{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.15);color:var(--danger)}
+        .btn-danger:hover{background:rgba(239,68,68,0.14);box-shadow:0 0 16px rgba(239,68,68,0.1)}
+        .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--t2)}
+        .btn-ghost:hover{color:var(--t1);border-color:var(--border-hover);background:rgba(59,130,246,0.03)}
+        .btn-sm{padding:7px 16px;font-size:12.5px;border-radius:6px}
+        .btn-row{display:flex;gap:10px;padding:28px 0 4px}
+
+        /* ── Avatar Row ── */
+        .avatar-circle{
+            width:56px;height:56px;border-radius:50%;flex-shrink:0;
+            background:rgba(59,130,246,0.08);border:1.5px solid rgba(59,130,246,0.18);
+            display:flex;align-items:center;justify-content:center;position:relative;
+        }
+        .avatar-circle svg{width:24px;height:24px;opacity:0.3}
+        .avatar-glow-ring{
+            position:absolute;inset:-3px;border-radius:50%;
+            background:conic-gradient(from 0deg,var(--blue),var(--cyan),var(--blue));
+            opacity:0.35;animation:ringRotate 6s linear infinite;z-index:-1;
+        }
+        @keyframes ringRotate{to{transform:rotate(360deg)}}
+        .avatar-name{font-size:15px;font-weight:500}
+        .avatar-role{font-size:12.5px;color:var(--t3);margin-top:2px}
+
+        /* ── Session Row ── */
+        .session-device{font-size:14.5px;font-weight:400}
+        .session-meta{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--t3);margin-top:2px;letter-spacing:0.01em}
+        .current-badge{font-size:10.5px;font-weight:500;padding:3px 12px;border-radius:100px;background:rgba(6,182,212,0.08);color:var(--cyan);border:1px solid rgba(6,182,212,0.15)}
+        .session-logout-btn{padding:6px 14px;background:transparent;border:1px solid rgba(239,68,68,0.12);border-radius:6px;color:rgba(239,68,68,0.55);font-family:'Inter',sans-serif;font-size:11.5px;font-weight:500;cursor:pointer;transition:all .25s ease}
+        .session-logout-btn:hover{background:rgba(239,68,68,0.08);color:var(--danger);border-color:rgba(239,68,68,0.25)}
+
+        /* ── Notif Method Tabs ── */
+        .method-tabs{display:flex;gap:4px;padding:4px;background:rgba(15,23,42,0.5);border-radius:8px;border:1px solid var(--border);width:fit-content;margin-bottom:6px}
+        .method-tab{padding:8px 20px;background:transparent;border:none;border-radius:6px;color:var(--t2);font-family:'Inter',sans-serif;font-size:13.5px;font-weight:400;cursor:pointer;transition:all .25s ease}
+        .method-tab.active{background:rgba(59,130,246,0.12);color:var(--t1);box-shadow:0 0 10px rgba(59,130,246,0.08)}
+        .method-tab:hover:not(.active){color:var(--t1)}
+
+        /* ── Theme Selector ── */
+        .theme-options{display:flex;gap:12px}
+        .theme-opt{
+            padding:16px 22px;border:1px solid var(--border);border-radius:10px;
+            background:rgba(15,23,42,0.3);cursor:pointer;transition:all .25s ease;
+            display:flex;flex-direction:column;align-items:center;gap:12px;
+        }
+        .theme-opt:hover{border-color:var(--border-hover);background:rgba(15,23,42,0.5)}
+        .theme-opt.active{border-color:rgba(59,130,246,0.3);box-shadow:0 0 16px rgba(59,130,246,0.08)}
+        .theme-swatch{width:52px;height:34px;border-radius:6px}
+        .theme-swatch.dark{background:linear-gradient(135deg,#0B0F19,#1E293B)}
+        .theme-swatch.light{background:linear-gradient(135deg,#F1F5F9,#E2E8F0)}
+        .theme-swatch.sys{background:linear-gradient(135deg,#0B0F19 50%,#F1F5F9 50%)}
+        .theme-opt-label{font-size:13px;font-weight:400;color:var(--t2)}
+        .theme-opt.active .theme-opt-label{color:var(--t1)}
+
+        /* ── Accent Dots ── */
+        .accent-dots{display:flex;gap:14px}
+        .accent-dot{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .25s ease}
+        .accent-dot:hover{transform:scale(1.15)}
+        .accent-dot.active{border-color:rgba(255,255,255,0.45);box-shadow:0 0 12px currentColor}
+        .accent-dot.blue{background:var(--blue);color:var(--blue)}
+        .accent-dot.cyan{background:var(--cyan);color:var(--cyan)}
+
+        /* ── AI Level ── */
+        .level-options{display:flex;gap:12px}
+        .level-opt{
+            flex:1;padding:18px 22px;border:1px solid var(--border);border-radius:10px;
+            background:rgba(15,23,42,0.3);cursor:pointer;transition:all .25s ease;
+        }
+        .level-opt:hover{border-color:var(--border-hover);background:rgba(15,23,42,0.5)}
+        .level-opt.active{border-color:rgba(59,130,246,0.3);box-shadow:0 0 16px rgba(59,130,246,0.08),inset 0 0 24px rgba(59,130,246,0.02)}
+        .level-name{font-size:14.5px;font-weight:500;color:var(--t1);margin-bottom:4px}
+        .level-desc{font-size:12.5px;font-weight:300;color:var(--t3);line-height:1.6}
+
+        /* ── AI Section Glow ── */
+        .ai-glow-divider{height:1px;background:linear-gradient(90deg,var(--blue),var(--cyan),var(--blue));opacity:0.2;margin:0 0 4px;box-shadow:0 0 12px rgba(59,130,246,0.1)}
+
+        /* ── Toast ── */
+        .toast-box{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;flex-direction:column;gap:8px;align-items:center}
+        .toast{
+            padding:14px 28px;background:rgba(17,24,39,0.92);border:1px solid rgba(59,130,246,0.15);
+            border-radius:8px;backdrop-filter:blur(16px);font-size:14px;color:var(--t1);font-family:'Inter',sans-serif;
+            display:flex;align-items:center;gap:10px;
+            animation:tIn .35s ease-out,tOut .35s ease-in 2.6s forwards;
+            box-shadow:0 8px 32px rgba(0,0,0,0.4);
+        }
+        .toast svg{width:16px;height:16px;flex-shrink:0}
+        @keyframes tIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes tOut{to{opacity:0;transform:translateY(12px)}}
+
+        /* ── Responsive ── */
+        @media(max-width:860px){
+            .main-layout{grid-template-columns:1fr}
+            .side-nav{
+                position:static;height:auto;flex-direction:row;overflow-x:auto;
+                padding:12px 16px;border-left:none;border-bottom:1px solid var(--border);
+                scrollbar-width:none;
+            }
+            .side-nav::-webkit-scrollbar{display:none}
+            .nav-group{margin-bottom:0;display:flex;align-items:center;gap:2px}
+            .nav-group-label{display:none}
+            .nav-divider{width:1px;height:20px;margin:0 8px}
+            .nav-item{white-space:nowrap;padding:8px 16px;font-size:13px}
+            .nav-item.active::before{display:none}
+            .nav-item.active{box-shadow:inset 0 -2px 0 var(--blue);border-radius:6px}
+            .content-area{padding:28px 20px}
+            .s-input,.s-select{width:100%}
+            .setting-row{flex-direction:column;align-items:flex-start;gap:12px}
+            .setting-label{padding-left:0}
+            .theme-options,.level-options{flex-direction:column}
+            .section-title{font-size:22px}
+        }
+        @media(max-width:480px){
+            .top-bar{padding:0 16px}
+            .brand{font-size:10px}
+            .breadcrumb{font-size:12px}
+            .content-area{padding:20px 14px}
+            .section-title{font-size:20px}
+            .setting-row{padding:16px 0}
+            .btn{padding:10px 18px;font-size:13px}
+            .theme-opt{padding:12px 16px}
+            .level-opt{padding:14px 16px}
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="bgCanvas"></canvas>
+<div class="vignette"></div>
+
+<!-- Top Bar -->
+<header class="top-bar">
+    <div class="top-bar-right">
+        <span class="brand">نبض آینده جنوب</span>
+        <span class="sep">›</span>
+        <span class="breadcrumb">تنظیمات</span>
+    </div>
+    <div class="top-bar-left">
+        <div class="top-avatar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+    </div>
+</header>
+
+<!-- Main Layout -->
+<div class="main-layout">
+
+    <!-- Nav (RIGHT side in RTL) -->
+    <nav class="side-nav">
+        <div class="nav-group">
+            <div class="nav-group-label">تنظیمات</div>
+            <button class="nav-item active" data-section="general">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                عمومی
+            </button>
+            <button class="nav-item" data-section="account">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                حساب کاربری
+            </button>
+            <button class="nav-item" data-section="security">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                امنیت
+            </button>
+            <button class="nav-item" data-section="notifications">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                اعلان‌ها
+            </button>
+        </div>
+        <div class="nav-divider"></div>
+        <div class="nav-group">
+            <div class="nav-group-label">پیشرفته</div>
+            <button class="nav-item" data-section="appearance">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                ظاهر
+            </button>
+            <button class="nav-item" data-section="language">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                زبان و منطقه
+            </button>
+            <button class="nav-item" data-section="ai">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M16 14H8a4 4 0 0 0-4 4v2h16v-2a4 4 0 0 0-4-4z"/><circle cx="12" cy="6" r="0.5" fill="currentColor"/></svg>
+                تنظیمات هوش مصنوعی
+                <span class="nav-ai-badge">AI</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Content (LEFT side in RTL) -->
+    <div class="content-area">
+
+        <!-- ═══ عمومی ═══ -->
+        <div class="section active" id="sec-general">
+            <h2 class="section-title">عمومی</h2>
+            <p class="section-subtitle">اطلاعات پایه حساب کاربری شما</p>
+            <div class="section-divider"></div>
+
+            <div class="setting-row">
+                <div class="setting-label"><div class="label-title">نام و نام خانوادگی</div><div class="label-desc">نامی که در سیستم نمایش داده می‌شود</div></div>
+                <div class="setting-control"><input type="text" class="s-input" value="علی محمدی"></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label"><div class="label-title">ایمیل</div><div class="label-desc">برای ارتباط و دریافت اعلان‌ها استفاده می‌شود</div></div>
+                <div class="setting-control"><input type="email" class="s-input" value="ali@rayovin.ai" dir="ltr" style="text-align:right"></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label"><div class="label-title">موبایل</div><div class="label-desc">شماره تماس اصلی حساب</div></div>
+                <div class="setting-control"><input type="tel" class="s-input" value="۰۹۱۲۳۴۵۶۷۸۹" dir="ltr" style="text-align:right"></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label"><div class="label-title">عنوان شغلی</div><div class="label-desc">نقش سازمانی شما در سیستم</div></div>
+                <div class="setting-control"><input type="text" class="s-input" value="مدیر سیستم"></div>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="showToast('تغییرات ذخیره شد')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>ذخیره تغییرات</span></button>
+            </div>
+        </div>
+
+        <!-- ═══ حساب کاربری ═══ -->
+        <div class="section" id="sec-account">
+            <h2 class="section-title">حساب کاربری</h2>
+            <p class="section-subtitle">مدیریت اطلاعات حساب و آواتار</p>
+            <div class="section-divider"></div>
+
+            <div class="setting-row">
+                <div class="setting-label"><div class="label-title">تصویر پروفایل</div><div class="label-desc">حداکثر ۲ مگابایت، فرمت‌های JPG یا PNG</div></div>
+                <div class="setting-control" style="gap:16px">
+                    <div class="avatar-circle"><div class="avatar-glow-ring"></div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+                    <div><div class="avatar-name">علی محمدی</div><div class="avatar-role">مدیر سیستم</div></div>
+                    <button class="btn btn-ghost btn-sm">تغییر عکس</button>
+                </div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label"><div class="label-title">شناسه کاربری</div><div class="label-desc">شناسه یکتای حساب شما</div></div>
+                <div class="setting-control"><input type="text" class="s-input" value="USR-2847" readonly dir="ltr" style="text-align:right"></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label"><div class="label-title">تاریخ عضویت</div><div class="label-desc">تاریخ ایجاد حساب کاربری</div></div>
+                <div class="setting-control"><input type="text" class="s-input" value="۱۴۰۳/۰۶/۱۵" readonly></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label"><div class="label-title">پلن اشتراک</div><div class="label-desc">سطح دسترسی فعلی شما</div></div>
+                <div class="setting-control"><input type="text" class="s-input" value="سازمانی — حرفه‌ای" readonly style="color:var(--cyan)"></div>
+            </div>
+
+            <div class="sub-title">منطقه خطر</div>
+            <div class="setting-row">
+                <div class="setting-label"><div class="label-title" style="color:var(--danger)">حذف حساب کاربری</div><div class="label-desc">این عمل غیرقابل بازگشت است و تمام داده‌ها حذف خواهند شد</div></div>
+                <div class="setting-control"><button class="btn btn-danger btn-sm" onclick="showToast('درخواست حذف ارسال شد')">حذف حساب</button></div>
+            </div>
+        </div>
+
+        <!-- ═══ امنیت ═══ -->
+        <div class="section" id="sec-security">
+            <h2 class="section-title">امنیت</h2>
+            <p class="section-subtitle">رمز عبور، احراز هویت و نشست‌های فعال</p>
+            <div class="section-divider"></div>
+
+            <div class="sub-title">تغییر رمز عبور</div>
+            <div class="setting-row">
+                <div class="setting-label"><div class="label-title">رمز عبور فعلی</div></div>
+                <div class="setting-control"><input type="password" class="s-input" placeholder="••••••••"></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label"><div class="label-title">رمز عبور جدید</div></div>
+                <div class="setting-control"><input type="password" class="s-input" placeholder="••••••••"></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label"><div class="label-title">تکرار رمز جدید</div></div>
+                <div class="setting-control"><input type="password" class="s-input" placeholder="••••••••"></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label"></div>
+                <div class="setting-control"><button class="btn btn-primary btn-sm" onclick="showToast('رمز عبور تغییر کرد')">تغییر رمز عبور</button></div>
+            </div>
+
+            <div class="sub-title">احراز هویت دو مرحله‌ای</div>
+            <div class="setting-row">
+                <div class="setting-label"><div class="label-title">فعال‌سازی 2FA</div><div class="label-desc">لایه امنیتی اضافی از طریق اپلیکیشن احراز هویت</div></div>
+                <div class="setting-control"><label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span><span class="toggle-thumb"></span></label></div>
+            </div>
+
+            <div class="sub-title">نشست‌های فعال</div>
+            <div class="setting-row">
+                <div class="setting-label"><div class="session-device">macOS — Chrome</div><div class="session-meta">185.x.x.x · الان</div></div>
+                <div class="setting-control"><span class="current-badge">این دستگاه</span></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label"><div class="session-device">iPhone 15 — Safari</div><div class="session-meta">78.x.x.x · ۲ ساعت پیش</div></div>
+                <div class="setting-control"><button class="session-logout-btn" onclick="showToast('از دستگاه خارج شدید')">خروج</button></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label"><div class="session-device">Windows — Firefox</div><div class="session-meta">5.160.x.x · دیروز</div></div>
+                <div class="setting-control"><button class="session-logout-btn" onclick="showToast('از دستگاه خارج شدید')">خروج</button></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label"></div>
+                <div class="setting-control"><button class="btn btn-danger btn-sm" onclick="showToast('از تمام دستگاه‌ها خارج شدید')">خروج از همه دستگاه‌ها</button></div>
+            </div>
+        </div>
+
+        <!-- ═══ اعلان‌ها ═══ -->
+        <div class="section" id="sec-notifications">
+            <h2 class="section-title">اعلان‌ها</h2>
+            <p class="section-subtitle">مدیریت نحوه و نوع دریافت اعلان‌ها</p>
+            <div class="section-divider"></div>
+
+            <div class="method-tabs">
+                <button class="method-tab active" data-method="inapp">داخل سیستم</button>
+                <button class="method-tab" data-method="email">ایمیل</button>
+            </div>
+
+            <div id="notif-inapp">
+                <div class="setting-row"><div class="setting-label"><div class="label-title">درخواست مرخصی جدید</div><div class="label-desc">هنگام ثبت مرخصی توسط پرسنل</div></div><div class="setting-control"><label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span><span class="toggle-thumb"></span></label></div></div>
+                <div class="setting-row"><div class="setting-label"><div class="label-title">قرارداد جدید</div><div class="label-desc">ثبت یا تمدید قرارداد در سیستم</div></div><div class="setting-control"><label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span><span class="toggle-thumb"></span></label></div></div>
+                <div class="setting-row"><div class="setting-label"><div class="label-title">پرداخت در انتظار</div><div class="label-desc">فاکتورها و پرداخت‌های نیازمند تأیید</div></div><div class="setting-control"><label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span><span class="toggle-thumb"></span></label></div></div>
+                <div class="setting-row"><div class="setting-label"><div class="label-title">گزارش کار جدید</div><div class="label-desc">ارسال گزارش عملکرد توسط تیم</div></div><div class="setting-control"><label class="toggle"><input type="checkbox"><span class="toggle-track"></span><span class="toggle-thumb"></span></label></div></div>
+                <div class="setting-row"><div class="setting-label"><div class="label-title">هشدار غیبت</div><div class="label-desc">غیبت غیرمجاز یا عدم ثبت حضور</div></div><div class="setting-control"><label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span><span class="toggle-thumb"></span></label></div></div>
+            </div>
+
+            <div id="notif-email" style="display:none">
+                <div class="setting-row"><div class="setting-label"><div class="label-title">درخواست مرخصی جدید</div><div class="label-desc">ارسال ایمیل هنگام ثبت مرخصی</div></div><div class="setting-control"><label class="toggle"><input type="checkbox"><span class="toggle-track"></span><span class="toggle-thumb"></span></label></div></div>
+                <div class="setting-row"><div class="setting-label"><div class="label-title">قرارداد جدید</div><div class="label-desc">ارسال ایمیل هنگام ثبت قرارداد</div></div><div class="setting-control"><label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span><span class="toggle-thumb"></span></label></div></div>
+                <div class="setting-row"><div class="setting-label"><div class="label-title">پرداخت در انتظار</div><div class="label-desc">ارسال ایمیل برای فاکتورهای در انتظار</div></div><div class="setting-control"><label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span><span class="toggle-thumb"></span></label></div></div>
+                <div class="setting-row"><div class="setting-label"><div class="label-title">گزارش کار جدید</div><div class="label-desc">ارسال ایمیل هنگام دریافت گزارش</div></div><div class="setting-control"><label class="toggle"><input type="checkbox"><span class="toggle-track"></span><span class="toggle-thumb"></span></label></div></div>
+                <div class="setting-row"><div class="setting-label"><div class="label-title">هشدار غیبت</div><div class="label-desc">ارسال ایمیل در صورت غیبت غیرمجاز</div></div><div class="setting-control"><label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span><span class="toggle-thumb"></span></label></div></div>
+            </div>
+        </div>
+
+        <!-- ═══ ظاهر ═══ -->
+        <div class="section" id="sec-appearance">
+            <h2 class="section-title">ظاهر</h2>
+            <p class="section-subtitle">تم، رنگ و انیمیشن‌های رابط کاربری</p>
+            <div class="section-divider"></div>
+
+            <div class="setting-row">
+                <div class="setting-label"><div class="label-title">حالت نمایش</div><div class="label-desc">انتخاب تم مناسب محیط کار</div></div>
+                <div class="setting-control">
+                    <div class="theme-options">
+                        <div class="theme-opt active" data-theme="dark"><div class="theme-swatch dark"></div><div class="theme-opt-label">تاریک</div></div>
+                        <div class="theme-opt" data-theme="light"><div class="theme-swatch light"></div><div class="theme-opt-label">روشن</div></div>
+                        <div class="theme-opt" data-theme="system"><div class="theme-swatch sys"></div><div class="theme-opt-label">سیستم</div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label"><div class="label-title">رنگ تأکید</div><div class="label-desc">رنگ اصلی عناصر تعاملی</div></div>
+                <div class="setting-control">
+                    <div class="accent-dots">
+                        <div class="accent-dot blue active" data-accent="blue"></div>
+                        <div class="accent-dot cyan" data-accent="cyan"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label"><div class="label-title">فعال‌سازی انیمیشن‌ها</div><div class="label-desc">افکت‌های حرکتی و انتقال‌ها</div></div>
+                <div class="setting-control"><label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span><span class="toggle-thumb"></span></label></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label"><div class="label-title">کاهش حرکت</div><div class="label-desc">حداقل‌سازی انیمیشن برای دسترسی‌پذیری</div></div>
+                <div class="setting-control"><label class="toggle"><input type="checkbox"><span class="toggle-track"></span><span class="toggle-thumb"></span></label></div>
+            </div>
+        </div>
+
+        <!-- ═══ زبان و منطقه ═══ -->
+        <div class="section" id="sec-language">
+            <h2 class="section-title">زبان و منطقه</h2>
+            <p class="section-subtitle">تنظیمات محلی‌سازی و فرمت داده‌ها</p>
+            <div class="section-divider"></div>
+
+            <div class="setting-row">
+                <div class="setting-label"><div class="label-title">زبان رابط کاربری</div><div class="label-desc">زبان نمایش منوها و برچسب‌ها</div></div>
+                <div class="setting-control"><select class="s-select"><option selected>فارسی</option><option>English</option><option>العربية</option></select></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label"><div class="label-title">منطقه زمانی</div><div class="label-desc">منظقه زمانی برای نمایش ساعت</div></div>
+                <div class="setting-control"><select class="s-select"><option selected>Asia/Tehran (GMT+3:30)</option><option>Asia/Dubai (GMT+4:00)</option><option>Europe/London (GMT+0:00)</option><option>America/New_York (GMT-5:00)</option></select></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label"><div class="label-title">فرمت تاریخ</div><div class="label-desc">نحوه نمایش تاریخ در سراسر سیستم</div></div>
+                <div class="setting-control"><select class="s-select"><option selected>شمسی (جلالی)</option><option>میلادی (Gregorian)</option></select></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label"><div class="label-title">واحد پول</div><div class="label-desc">واحد نمایش مبالغ مالی</div></div>
+                <div class="setting-control"><select class="s-select"><option selected>تومان (T)</option><option>ریال (R)</option><option>USD ($)</option><option>EUR (€)</option></select></div>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="showToast('تنظیمات منطقه ذخیره شد')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>ذخیره تنظیمات</span></button>
+            </div>
+        </div>
+
+        <!-- ═══ تنظیمات هوش مصنوعی ═══ -->
+        <div class="section" id="sec-ai">
+            <h2 class="section-title">تنظیمات هوش مصنوعی</h2>
+            <p class="section-subtitle">پیکربندی هسته هوش Rayovin</p>
+            <div class="ai-glow-divider"></div>
+
+            <div class="setting-row">
+                <div class="setting-label"><div class="label-title">فعال‌سازی پیشنهادهای هوشمند</div><div class="label-desc">ارائه خودکار پیشنهادات بر اساس الگوهای رفتاری</div></div>
+                <div class="setting-control"><label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span><span class="toggle-thumb"></span></label></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label"><div class="label-title">تحلیل پیش‌بینی ریسک</div><div class="label-desc">شناسایی و هشدار قبل از وقوع مشکلات احتمالی</div></div>
+                <div class="setting-control"><label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span><span class="toggle-thumb"></span></label></div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label"><div class="label-title">سطح تحلیل هوش مصنوعی</div><div class="label-desc">عمق و دقت پردازش‌های هوشمند</div></div>
+                <div class="setting-control">
+                    <div class="level-options">
+                        <div class="level-opt" data-level="basic"><div class="level-name">پایه</div><div class="level-desc">تحلیل‌های ساده و گزارش‌های عمومی</div></div>
+                        <div class="level-opt active" data-level="advanced"><div class="level-name">پیشرفته</div><div class="level-desc">تحلیل عمیق و پیش‌بینی رفتاری</div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="showToast('تنظیمات AI ذخیره شد')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>ذخیره تنظیمات AI</span></button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="toast-box" id="toastBox"></div>
+
+<script>
+    // ── Navigation ──
+    document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById('sec-' + btn.dataset.section).classList.add('active');
+        });
+    });
+
+    // ── Notification Method Tabs ──
+    document.querySelectorAll('.method-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.method-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById('notif-inapp').style.display = tab.dataset.method === 'inapp' ? 'block' : 'none';
+            document.getElementById('notif-email').style.display = tab.dataset.method === 'email' ? 'block' : 'none';
+        });
+    });
+
+    // ── Theme Selection ──
+    document.querySelectorAll('.theme-opt').forEach(opt => {
+        opt.addEventListener('click', () => {
+            document.querySelectorAll('.theme-opt').forEach(o => o.classList.remove('active'));
+            opt.classList.add('active');
+            showToast('تم تغییر کرد: ' + opt.querySelector('.theme-opt-label').textContent);
+        });
+    });
+
+    // ── Accent Selection ──
+    document.querySelectorAll('.accent-dot').forEach(dot => {
+        dot.addEventListener('click', () => {
+            document.querySelectorAll('.accent-dot').forEach(d => d.classList.remove('active'));
+            dot.classList.add('active');
+            showToast('رنگ تأکید تغییر کرد');
+        });
+    });
+
+    // ── AI Level Selection ──
+    document.querySelectorAll('.level-opt').forEach(opt => {
+        opt.addEventListener('click', () => {
+            document.querySelectorAll('.level-opt').forEach(o => o.classList.remove('active'));
+            opt.classList.add('active');
+        });
+    });
+
+    // ── Toast ──
+    function showToast(msg) {
+        const box = document.getElementById('toastBox');
+        const t = document.createElement('div');
+        t.className = 'toast';
+        t.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>${msg}`;
+        box.appendChild(t);
+        setTimeout(() => t.remove(), 3000);
+    }
+
+    // ── Background Canvas (very minimal) ──
+    const c = document.getElementById('bgCanvas'), x = c.getContext('2d');
+    let w, h;
+    function resize() { w = c.width = innerWidth; h = c.height = innerHeight; }
+    resize(); addEventListener('resize', resize);
+
+    class P {
+        constructor() { this.r(); }
+        r() {
+            this.x = Math.random() * w; this.y = Math.random() * h;
+            this.s = Math.random() * 0.8 + 0.2;
+            this.dx = (Math.random() - 0.5) * 0.15;
+            this.dy = (Math.random() - 0.5) * 0.15;
+            this.o = Math.random() * 0.12 + 0.02;
+            this.c = Math.random() > 0.5;
+        }
+        u() {
+            this.x += this.dx; this.y += this.dy;
+            if (this.x < -5 || this.x > w + 5 || this.y < -5 || this.y > h + 5) this.r();
+        }
+        d() {
+            x.beginPath();
+            x.arc(this.x, this.y, this.s, 0, Math.PI * 2);
+            x.fillStyle = this.c ? `rgba(6,182,212,${this.o})` : `rgba(59,130,246,${this.o})`;
+            x.fill();
+        }
+    }
+
+    const ps = [];
+    for (let i = 0; i < 35; i++) ps.push(new P());
+
+    (function loop() {
+        x.clearRect(0, 0, w, h);
+        // Subtle center glow
+        const g = x.createRadialGradient(w * 0.35, h * 0.3, 0, w * 0.35, h * 0.3, Math.max(w, h) * 0.5);
+        g.addColorStop(0, 'rgba(59,130,246,0.015)');
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        x.fillStyle = g;
+        x.fillRect(0, 0, w, h);
+        ps.forEach(p => { p.u(); p.d(); });
+        requestAnimationFrame(loop);
+    })();
+</script>
+</body>
+</html>
