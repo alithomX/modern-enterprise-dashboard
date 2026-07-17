@@ -6,10 +6,9 @@ A modern and responsive enterprise dashboard interface designed for business man
 
 - Modern UI/UX design
 - Responsive layout
-- Dark / Light mode
-- Interactive charts
+- Dark mode
 - Data tables
-- User management
+- User management(soon)
 - Analytics cards
 - Reusable components
 
