@@ -28,7 +28,7 @@ A modern and responsive enterprise dashboard interface designed for business man
 
 Clone the repository:
 
-git clone https://github.com/username/enterprise-dashboard.git
+git clone [https://github.com/username/enterprise-dashboard.git](https://alithomx.github.io/modern-enterprise-dashboard/)
 
 Open the project and run it locally.
 
